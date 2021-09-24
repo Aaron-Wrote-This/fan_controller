@@ -1,4 +1,4 @@
-from time import sleep, time
+import utime
 from machine import Pin, unique_id
 import ubinascii
 from umqtt.simple import MQTTClient
@@ -14,22 +14,18 @@ AC_COMMAND = b''
 KEEP_ALIVE = b'0'
 
 
-def toggle_ac(on_off):  # Takes on/off input
-    if on_off == 'on':  # sanity check to see if input is valid, otherwise return error
-        direction = 1
-    elif on_off == 'off':
-        direction = -1
-    else:
-        return '-1'
-    print("toggle command working : {}".format(on_off))
-    list_of_pins = [14, 12, 13, 15]  # pins being used to control motor
-    initialized_list_of_pins = []
-    list_of_states = [[1, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 1], [1, 0, 0, 1]]  # states to full step
-    one_revolution = 2048  # number of steps in a full revolution of my motor (28BYJ-48 12v)
-    # rotation_amt = int((one_revolution / 4) / 4)         # good for lightswitch
-    rotation_amt = int((one_revolution / 4) / 2 + (one_revolution / 4 / 3) - 20)            # rotation amt for AC
 
-    speed = 0.005 # 0.005  # 0.002 		# 0.002 is fastest   # speed I've found most effective for strengh/speed to flip my AC
+def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time):
+    button_state = not button_pin.value()   # only read the button once
+    # print(button_state)
+    # check if the button is being pressed and check that this button press has not already been dealt with, and
+    # check if the button just bounced up and down
+    if button_state and not prev_button_state and utime.ticks_diff(utime.ticks_ms(), prev_time) > debounce_time:
+        relay_pin.value(not relay_pin.value())  # set the relay
+        print('Turning on relay because of button press')
+        prev_time = utime.ticks_ms()             # record when the button was last pressed for debouncing
+    prev_button_state = button_state    # record the button state to see if we've processed this one yet
+    return prev_button_state, prev_time
 
     try:
         for pin in list_of_pins:  # setup all pins as outputs and set them to off position
@@ -94,7 +90,7 @@ def main():
     try:
         print("Booting main")
         print("Sleeping 5 seconds")
-        sleep(5)
+        utime.sleep(5)
         c = MQTTClient(CLIENT_ID, SERVER)
 
         connected = False
@@ -106,33 +102,37 @@ def main():
             except:
                 print("connecting failed, still trying")
                 connected = False
-                sleep(3)
+                utime.sleep(3)
 
         print("connection worked!")
 
-        global AC_COMMAND, KEEP_ALIVE
-        # previous_time = time()
+        # define standard vars
+        button_pin_number = 0  # Sonoff On/Off button
+        relay_pin_number = 12  # Sonoff relay
+        led_pin_number = 13  # Sonoff green LED - always on
+
+        prev_button_state = 0  # previous state of the button
+
+        # init pins
+        button_pin = Pin(button_pin_number, Pin.IN, Pin.PULL_UP)
+        relay_pin = Pin(relay_pin_number, Pin.OUT)
+        led_pin = Pin(led_pin_number, Pin.OUT)
+        led_pin.on()        # status led, just showing alive right now
+
+        # setup customizable vars
+        debounce_time = 200  # the debounce time, increase if the output flickers
+        prev_time = 0
+
+        # main loop
         while True:
-            c.wait_msg()
-            if AC_COMMAND == b'1':
-                print("ac turn on")
-                toggle_ac("on")
-                AC_COMMAND = b''
-            elif AC_COMMAND == b'0':
-                print("ac turn off")
-                toggle_ac("off")
-                AC_COMMAND = b''
-            else:
-                print("Ac command = {}".format(AC_COMMAND))
-            # if KEEP_ALIVE == b'1':
-            #     previous_time = time()
-            #     KEEP_ALIVE = b''
-            # if (time() - previous_time) > 30:
-            #     print("I'm dead")
-            #     reset()
+            prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
+            c.check_msg()
+            toggle_relay_from_message(relay_pin)
+            utime.sleep_ms(100)
+
     except Exception as e:
         print("Something went wrong, trying to reboot?\nHere was the error {}".format(e))
-        sleep(3)
+        utime.sleep(3)
 
 
 # if __name__ == "__main__":
