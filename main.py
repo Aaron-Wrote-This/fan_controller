@@ -48,10 +48,10 @@ def receive_message(topic, msg):
         global FAN_COMMAND
         if FAN_COMMAND == b'':
             # print("AC topic is null(good)")
-            if msg == b'on':
+            if msg == b'ON':
                 # print("msg was on good!\n\n\n")
                 FAN_COMMAND = b'1'
-            elif msg == b'off':
+            elif msg == b'OFF':
                 FAN_COMMAND = b'0'
     # elif topic == TOPIC_KEEPALIVE:
     #     global KEEP_ALIVE
