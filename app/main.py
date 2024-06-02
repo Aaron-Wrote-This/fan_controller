@@ -12,7 +12,7 @@ OTA = senko.Senko(
   user="Aaron-Wrote-This", # Required
   repo="fan_controller", # Required
   branch="master", # Optional: Defaults to "master"
-  working_dir="app", # Optional: Defaults to "app"
+  working_dir="", # Optional: Defaults to "app"
   files = ["boot.py", "main.py"]
 )
 
