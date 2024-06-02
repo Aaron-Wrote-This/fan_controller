@@ -5,6 +5,18 @@ from umqtt.simple import MQTTClient
 from NetworkConnect import get_server_ip
 # import logging            # logging doesn't seem to work by default??
 
+
+import senko
+
+OTA = senko.Senko(
+  user="Aaron-Wrote-This", # Required
+  repo="fan_controller", # Required
+  branch="master", # Optional: Defaults to "master"
+  working_dir="app", # Optional: Defaults to "app"
+  files = ["boot.py", "main.py"]
+)
+
+
 # mosquitto_pub -t ACCommands -m "on"
 SERVER = get_server_ip()                            # Server IP address
 CLIENT_ID = ubinascii.hexlify(unique_id())          # ID of client to be used by MQTT Server
