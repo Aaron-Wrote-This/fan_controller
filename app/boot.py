@@ -6,8 +6,8 @@
 # import webrepl
 # webrepl.start()
 
-# import gc
-# gc.collect()
+import gc
+gc.collect()
 
 import NetworkConnect
 NetworkConnect.connect_to_network()
