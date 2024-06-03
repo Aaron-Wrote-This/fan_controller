@@ -77,14 +77,6 @@ def connect_c(c):                                        # connect call, works m
     # c.subscribe(TOPIC_KEEPALIVE)
 
 
-def ping():
-    ...
-
-
-def pong():
-    ...
-
-
 def main():
     try:
         print("Booting main")
