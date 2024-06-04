@@ -69,6 +69,7 @@ def receive_message(topic, msg):
 
 
 def main():
+    print("Version 1")
     # Connect to wifi
     #   if that fails wait 5 mins and try to reconnect
     # Connect to mqtt, if that fails wait 5 mins and try to reconnect
