@@ -1,8 +1,9 @@
 import utime
-from machine import Pin, unique_id
+from machine import Pin, unique_id, reset
 import ubinascii
 from umqtt.simple import MQTTClient
-from NetworkConnect import get_server_ip
+import network
+from NetworkConnect import get_server_ip, safe_connect_to_network
 # import logging            # logging doesn't seem to work by default??
 
 
@@ -12,8 +13,7 @@ OTA = senko.Senko(
   user="Aaron-Wrote-This", # Required
   repo="fan_controller", # Required
   branch="master", # Optional: Defaults to "master"
-  working_dir="", # Optional: Defaults to "app"
-  files = ["boot.py", "main.py"]
+  files=["boot.py", "main.py"]
 )
 
 
@@ -70,32 +70,13 @@ def receive_message(topic, msg):
     #     KEEP_ALIVE = b'1'
 
 
-def connect_c(c):                                        # connect call, works mostly
-    c.connect()
-    c.set_callback(receive_message)
-    c.subscribe(TOPIC_FAN_PLUG)
-    # c.subscribe(TOPIC_KEEPALIVE)
-
-
 def main():
+    # Connect to wifi
+    #   if that fails wait 5 mins and try to reconnect
+    # Connect to mqtt, if that fails wait 5 mins and try to reconnect
+
     try:
         print("Booting main")
-        print("Sleeping 5 seconds")
-        utime.sleep(5)
-        c = MQTTClient(CLIENT_ID, SERVER)
-
-        connected = False
-        while not connected:
-            print("attempting connection")
-            try:
-                connect_c(c)
-                connected = True
-            except:
-                print("connecting failed, still trying")
-                connected = False
-                utime.sleep(3)
-
-        print("connection worked!")
 
         # define standard vars
         button_pin_number = 0  # Sonoff On/Off button
@@ -108,17 +89,54 @@ def main():
         button_pin = Pin(button_pin_number, Pin.IN, Pin.PULL_UP)
         relay_pin = Pin(relay_pin_number, Pin.OUT)
         led_pin = Pin(led_pin_number, Pin.OUT)
+
         led_pin.on()        # status led, just showing alive right now
+        # todo flash led when wifi connects and flash it if wifi isn't connected?
+        # ex flash_led_patterns.append([1,2])
+        # flashes the led twice with 1 second gaps inbetween
+        # flash_led_patterns = []
 
         # setup customizable vars
         debounce_time = 200  # the debounce time, increase if the output flickers
         prev_time = 0
 
+        wifi_connected = False
+        mqtt_connected = False
+
         # main loop
         while True:
+            wifi_connection_time = utime.time()
+            # todo check if wifi really is connected, instead of just running this the first time
+            if not wifi_connected:
+                wifi_connected = safe_connect_to_network()
+                wifi_connection_time = utime.time()
+                print("wifi connection worked!")
+                utime.sleep(5)
+            if not wifi_connected and wifi_connection_time + 500 > utime.time():
+                reset()
+
+            mqtt_connection_time = utime.time()
+            # todo check if mqtt really is connected, instead of just running this the first time
+            if not mqtt_connected:
+                try:
+                    c = MQTTClient(CLIENT_ID, SERVER)
+                    c.connect()
+                    c.set_callback(receive_message)
+                    c.subscribe(TOPIC_FAN_PLUG)
+                    mqtt_connected = True
+
+                    print("mqtt connection worked!")
+                except:
+                    print("connecting failed, still trying")
+            if not mqtt_connected and mqtt_connection_time + 500 > utime.time():
+                reset()
+
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
-            c.check_msg()
-            toggle_relay_from_message(relay_pin)
+
+            if mqtt_connected:
+                c.check_msg()
+                toggle_relay_from_message(relay_pin)
+
             utime.sleep_ms(100)
 
     except Exception as e:
