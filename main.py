@@ -88,7 +88,8 @@ def main():
         relay_pin = Pin(relay_pin_number, Pin.OUT)
         led_pin = Pin(led_pin_number, Pin.OUT)
 
-        led_pin.on()        # status led, just showing alive right now
+        # REVERSED off = on, ect
+        led_pin.off()        # status led, just showing alive right now
         # todo flash led when wifi connects and flash it if wifi isn't connected?
         # ex flash_led_patterns.append([1,2])
         # flashes the led twice with 1 second gaps inbetween
@@ -130,6 +131,10 @@ def main():
                     print("connecting failed, still trying")
             if not mqtt_connected and mqtt_connection_time + 500 > utime.time():
                 reset()
+
+            if mqtt_connected and wifi_connected:
+                # turn led off once we have good connection
+                led_pin.on()
 
             # if prev_ota_update_check + 300 > utime.time():
             #     if OTA.update():
