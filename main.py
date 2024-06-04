@@ -9,11 +9,9 @@ from NetworkConnect import get_server_ip, safe_connect_to_network
 
 import senko
 
-OTA = senko.Senko(
-  user="Aaron-Wrote-This", # Required
-  repo="fan_controller", # Required
-  branch="master", # Optional: Defaults to "master"
-  files=["boot.py", "main.py"]
+OTA = senko.Senko( None, None,
+    url="https://raw.githubusercontent.com/Aaron-Wrote-This/fan_controller/master",
+    files=["boot.py", "main.py"]
 )
 
 
@@ -133,9 +131,9 @@ def main():
             if not mqtt_connected and mqtt_connection_time + 500 > utime.time():
                 reset()
 
-
-            if prev_ota_update_check + 60 > utime.time():
-                OTA.update()
+            if prev_ota_update_check + 300 > utime.time():
+                if OTA.update():
+                    reset()
 
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
@@ -149,6 +147,7 @@ def main():
     except Exception as e:
         print("Something went wrong, trying to reboot?\nHere was the error {}".format(e))
         utime.sleep(3)
+        reset()
 
 
 # if __name__ == "__main__":
