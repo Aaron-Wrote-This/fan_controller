@@ -23,7 +23,7 @@ CLIENT_ID = ubinascii.hexlify(unique_id())          # ID of client to be used by
 # TOPIC_KEEPALIVE = b"keepAlive"                   # bedroomEnvironment, "livingroomEnvironment", "basementEnvironment"
 # KEEP_ALIVE = b'0'
 
-TOPIC_FAN_PLUG = b'FanCommands'                            # Topic for on/off command
+TOPIC_FAN_PLUG = b'PrinterPlug'                            # Topic for on/off command
 FAN_COMMAND = b''
 
 
@@ -100,6 +100,8 @@ def main():
         debounce_time = 200  # the debounce time, increase if the output flickers
         prev_time = 0
 
+        prev_ota_update_check = utime.time()
+
         wifi_connected = False
         mqtt_connected = False
 
@@ -130,6 +132,11 @@ def main():
                     print("connecting failed, still trying")
             if not mqtt_connected and mqtt_connection_time + 500 > utime.time():
                 reset()
+
+
+            if prev_ota_update_check + 60 > utime.time():
+                OTA.update()
+
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
 
