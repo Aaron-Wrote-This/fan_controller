@@ -2,17 +2,16 @@ import utime
 from machine import Pin, unique_id, reset
 import ubinascii
 from umqtt.simple import MQTTClient
-import network
 from NetworkConnect import get_server_ip, safe_connect_to_network
 # import logging            # logging doesn't seem to work by default??
 
 
-import senko
-
-OTA = senko.Senko( None, None,
-    url="https://raw.githubusercontent.com/Aaron-Wrote-This/fan_controller/master",
-    files=["boot.py", "main.py"]
-)
+# import senko
+#
+# OTA = senko.Senko( None, None,
+#     url="https://raw.githubusercontent.com/Aaron-Wrote-This/fan_controller/master",
+#     files=["boot.py", "main.py"]
+# )
 
 
 # mosquitto_pub -t ACCommands -m "on"
@@ -99,7 +98,7 @@ def main():
         debounce_time = 200  # the debounce time, increase if the output flickers
         prev_time = 0
 
-        prev_ota_update_check = utime.time()
+        # prev_ota_update_check = utime.time()
 
         wifi_connected = False
         mqtt_connected = False
@@ -132,9 +131,9 @@ def main():
             if not mqtt_connected and mqtt_connection_time + 500 > utime.time():
                 reset()
 
-            if prev_ota_update_check + 300 > utime.time():
-                if OTA.update():
-                    reset()
+            # if prev_ota_update_check + 300 > utime.time():
+            #     if OTA.update():
+            #         reset()
 
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
