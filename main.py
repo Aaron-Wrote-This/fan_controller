@@ -138,6 +138,7 @@ def main():
 
             if prev_ota_update_check + 300 > utime.time():
                 if OTA.update():
+                    print("OTA updating!")
                     reset()
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
