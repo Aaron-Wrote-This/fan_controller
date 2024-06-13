@@ -6,12 +6,12 @@ from NetworkConnect import get_server_ip, safe_connect_to_network
 # import logging            # logging doesn't seem to work by default??
 
 
-# import senko
-#
-# OTA = senko.Senko( None, None,
-#     url="https://raw.githubusercontent.com/Aaron-Wrote-This/fan_controller/master",
-#     files=["boot.py", "main.py"]
-# )
+import senko
+
+OTA = senko.Senko( None, None,
+    url="https://raw.githubusercontent.com/Aaron-Wrote-This/fan_controller/master",
+    files=["boot.py", "main.py"]
+)
 
 
 # mosquitto_pub -t ACCommands -m "on"
@@ -20,7 +20,7 @@ CLIENT_ID = ubinascii.hexlify(unique_id())          # ID of client to be used by
 # TOPIC_KEEPALIVE = b"keepAlive"                   # bedroomEnvironment, "livingroomEnvironment", "basementEnvironment"
 # KEEP_ALIVE = b'0'
 
-TOPIC_FAN_PLUG = b'PrinterPlug'                            # Topic for on/off command
+TOPIC_FAN_PLUG = b'OUTDOOR_PLUG'                            # Topic for on/off command
 FAN_COMMAND = b''
 
 
@@ -99,7 +99,7 @@ def main():
         debounce_time = 200  # the debounce time, increase if the output flickers
         prev_time = 0
 
-        # prev_ota_update_check = utime.time()
+        prev_ota_update_check = utime.time()
 
         wifi_connected = False
         mqtt_connected = False
@@ -136,10 +136,9 @@ def main():
                 # turn led off once we have good connection
                 led_pin.on()
 
-            # if prev_ota_update_check + 300 > utime.time():
-            #     if OTA.update():
-            #         reset()
-
+            if prev_ota_update_check + 300 > utime.time():
+                if OTA.update():
+                    reset()
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
 
