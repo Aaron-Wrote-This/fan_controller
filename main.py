@@ -136,10 +136,14 @@ def main():
                 # turn led off once we have good connection
                 led_pin.on()
 
-            if prev_ota_update_check + 300 > utime.time():
+            if prev_ota_update_check + 300 < utime.time():
+                prev_ota_update_check = utime.time()
+                print("Checking OTA Update!")
                 if OTA.update():
-                    print("OTA updating!")
+                    print("YES OTA updating!")
                     reset()
+                else:
+                    print("No OTA Update")
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
 
