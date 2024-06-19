@@ -16,15 +16,13 @@ OTA = senko.Senko(None, None,
 # mosquitto_pub -t ACCommands -m "on"
 SERVER = get_server_ip()                            # Server IP address
 CLIENT_ID = ubinascii.hexlify(unique_id())          # ID of client to be used by MQTT Server
-# TOPIC_KEEPALIVE = b"keepAlive"                   # bedroomEnvironment, "livingroomEnvironment", "basementEnvironment"
-# KEEP_ALIVE = b'0'
 
-TOPIC_FAN_PLUG = b'OUTDOOR_PLUG'                            # Topic for on/off command
-FAN_COMMAND = b''
+MQTT_TOPIC = b'OUTDOOR_PLUG'     # Topic specifc for this device
+MQTT_COMMAND = b''
 
 
 def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time):
-    button_state = not button_pin.value()   # only read the button once
+    button_state = button_pin.value()   # only read the button once
     # print(button_state)
     # check if the button is being pressed and check that this button press has not already been dealt with, and
     # check if the button just bounced up and down
@@ -36,14 +34,21 @@ def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debo
     return prev_button_state, prev_time
 
 
-def toggle_relay_from_message(relay_pin: Pin):
-    global FAN_COMMAND
-    if FAN_COMMAND != b'':
-        print('toggleing relay because of mqtt command')
-        if FAN_COMMAND == b'1' and relay_pin.value() != 1:
-            relay_pin.on()
-        elif FAN_COMMAND == b'0' and relay_pin.value() != 0:
-            relay_pin.off()
+def toggle_relay_from_message(relay_1, relay_2):
+    global MQTT_COMMAND
+    if MQTT_COMMAND != b'':
+        relay, command = str(MQTT_COMMAND).split(':')
+        if relay == "relay_1":
+            relay = relay_1
+        elif relay == "relay_2":
+            relay = relay_2
+        else:
+            print("Error reading relay: '{}'".format(MQTT_COMMAND))
+
+        if command == '1' and not relay.value():
+            relay.on()
+        elif command == '0' and relay.value():
+            relay.off()
         else:
             print("no toggle needed, was already set correctly")
 
@@ -77,19 +82,11 @@ class RelayWithStatusLED(Pin):
 
 def receive_message(topic, msg):
     # print("{} : {}".format(topic, msg))
-    if topic == TOPIC_FAN_PLUG:
+    if topic == MQTT_TOPIC:
         # print("Correct topic")
-        global FAN_COMMAND
-        if FAN_COMMAND == b'':
-            # print("AC topic is null(good)")
-            if msg == b'ON':
-                # print("msg was on good!\n\n\n")
-                FAN_COMMAND = b'1'
-            elif msg == b'OFF':
-                FAN_COMMAND = b'0'
-    # elif topic == TOPIC_KEEPALIVE:
-    #     global KEEP_ALIVE
-    #     KEEP_ALIVE = b'1'
+        global MQTT_COMMAND
+        if MQTT_COMMAND == b'':
+            MQTT_COMMAND = msg
 
 
 def main():
@@ -106,8 +103,6 @@ def main():
         # relay_1 = Pin(15, Pin.OUT)
         relay_1 = RelayWithStatusLED(15, 19)
 
-        # REVERSED off = on, ect
-        led_pin.off()        # status led, just showing alive right now
         relay_2 = RelayWithStatusLED(32, 16)
 
         lux_sensor = ADC(34)        # .5 < low; high > .5
@@ -128,7 +123,8 @@ def main():
 
         # setup customizable vars
         debounce_time = 200  # the debounce time, increase if the output flickers
-        prev_time = 0
+        prev_time_1 = 0
+        prev_time_2 = 0
 
         prev_ota_update_check = utime.time()
 
@@ -154,7 +150,7 @@ def main():
                     c = MQTTClient(CLIENT_ID, SERVER)
                     c.connect()
                     c.set_callback(receive_message)
-                    c.subscribe(TOPIC_FAN_PLUG)
+                    c.subscribe(MQTT_TOPIC)
                     mqtt_connected = True
 
                     print("mqtt connection worked!")
@@ -164,8 +160,9 @@ def main():
                 reset()
 
             if mqtt_connected and wifi_connected:
-                # turn led off once we have good connection
-                led_pin.on()
+                status_led.off()
+            else:
+                status_led.on()
 
             # if prev_ota_update_check + 300 < utime.time():
             #     prev_ota_update_check = utime.time()
@@ -176,11 +173,14 @@ def main():
             #     else:
             #         print("No OTA Update")
 
-            prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
+            prev_button_state_1, prev_time_1 = process_pushbutton(button_1, relay_1, prev_button_state_1, prev_time_1,
+                                                                  debounce_time)
+            prev_button_state_2, prev_time_2 = process_pushbutton(button_2, relay_2, prev_button_state_2, prev_time_2,
+                                                                  debounce_time)
 
             if mqtt_connected:
                 c.check_msg()
-                toggle_relay_from_message(relay_pin)
+                toggle_relay_from_message(relay_1, relay_2)
 
             utime.sleep_ms(100)
 
