@@ -8,11 +8,10 @@ from NetworkConnect import get_server_ip, safe_connect_to_network
 
 import senko
 
-OTA = senko.Senko( None, None,
-    url="https://raw.githubusercontent.com/Aaron-Wrote-This/fan_controller/master",
-    files=["boot.py", "main.py"]
-)
-
+OTA = senko.Senko(None, None,
+                  url="https://raw.githubusercontent.com/Aaron-Wrote-This/plug_controller/master",
+                  files=["boot.py", "main.py"]
+                  )
 
 # mosquitto_pub -t ACCommands -m "on"
 SERVER = get_server_ip()                            # Server IP address
@@ -68,11 +67,6 @@ def receive_message(topic, msg):
 
 
 def main():
-    print("Version 1")
-    # Connect to wifi
-    #   if that fails wait 5 mins and try to reconnect
-    # Connect to mqtt, if that fails wait 5 mins and try to reconnect
-
     try:
         print("Booting main")
 
@@ -136,14 +130,14 @@ def main():
                 # turn led off once we have good connection
                 led_pin.on()
 
-            if prev_ota_update_check + 300 < utime.time():
-                prev_ota_update_check = utime.time()
-                print("Checking OTA Update!")
-                if OTA.update():
-                    print("YES OTA updating!")
-                    reset()
-                else:
-                    print("No OTA Update")
+            # if prev_ota_update_check + 300 < utime.time():
+            #     prev_ota_update_check = utime.time()
+            #     print("Checking OTA Update!")
+            #     if OTA.update():
+            #         print("YES OTA updating!")
+            #         reset()
+            #     else:
+            #         print("No OTA Update")
 
             prev_button_state, prev_time = process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time)
 
