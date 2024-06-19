@@ -1,5 +1,5 @@
 import utime
-from machine import Pin, unique_id, reset
+from machine import Pin, Signal, unique_id, reset, ADC
 import ubinascii
 from umqtt.simple import MQTTClient
 from NetworkConnect import get_server_ip, safe_connect_to_network
@@ -46,7 +46,33 @@ def toggle_relay_from_message(relay_pin: Pin):
             relay_pin.off()
         else:
             print("no toggle needed, was already set correctly")
-    FAN_COMMAND = b''
+
+    MQTT_COMMAND = b''
+
+
+class RelayWithStatusLED(Pin):
+    def __init__(self, relay_pin_number: int, led_pin_number: int):
+        """Class to manage both the relays and LEDs
+        On this outdoor plug the leds are inverted..."""
+        super().__init__(relay_pin_number, Pin.OUT)
+        self.led = Signal(Pin(led_pin_number, Pin.OUT), invert=True)
+
+    def on(self):
+        super().on()
+        self.led.on()
+
+    def off(self):
+        super().off()
+        self.led.off()
+
+    def value(self, new_val=None):
+        # Passing None turns it off? So I guess I need to pass literally nothing
+        if new_val is not None:
+            self.led.value(new_val)
+            return super().value(new_val)
+        else:
+            self.led.value()
+            return super().value()
 
 
 def receive_message(topic, msg):
