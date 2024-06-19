@@ -97,30 +97,30 @@ def main():
         print("Booting main")
 
         # define standard vars
-        # GPIO5	Status LED
-        # GPIO18	Button 1
-        # GPIO17	Button 2
-        # GPIO15	Relay 1
-        # GPIO32	Relay 2
-        # GPIO19	Relay 1 LED
-        # GPIO16	Relay 2 LED
-        # GPIO34	LUX Sensor
-        # GPIO25	SEL
-        # GPIO27	CF
-        # GPIO26	CF1
-        button_pin_number = 0  # Sonoff On/Off button
-        relay_pin_number = 12  # Sonoff relay
-        led_pin_number = 13  # Sonoff green LED - always on
 
-        prev_button_state = 0  # previous state of the button
+        button_1 = Pin(18, Pin.IN, Pin.PULL_DOWN)
+        button_2 = Pin(17, Pin.IN, Pin.PULL_DOWN)
 
-        # init pins
-        button_pin = Pin(button_pin_number, Pin.IN, Pin.PULL_UP)
-        relay_pin = Pin(relay_pin_number, Pin.OUT)
-        led_pin = Pin(led_pin_number, Pin.OUT)
+        status_led = Signal(Pin(5, Pin.OUT), invert=True)
+
+        # relay_1 = Pin(15, Pin.OUT)
+        relay_1 = RelayWithStatusLED(15, 19)
 
         # REVERSED off = on, ect
         led_pin.off()        # status led, just showing alive right now
+        relay_2 = RelayWithStatusLED(32, 16)
+
+        lux_sensor = ADC(34)        # .5 < low; high > .5
+
+        # todo maybe implement, doesn't seem to be a library tho
+        power_sel = Pin(25, Pin.OUT)
+        power_cf = Pin(27, Pin.IN)
+        power_cf1 = Pin(26, Pin.IN)
+
+        prev_button_state_1 = 0  # previous state of the button
+        prev_button_state_2 = 0  # previous state of the button
+
+        status_led.on()        # status led, just showing alive right now
         # todo flash led when wifi connects and flash it if wifi isn't connected?
         # ex flash_led_patterns.append([1,2])
         # flashes the led twice with 1 second gaps inbetween
