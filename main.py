@@ -19,8 +19,8 @@ CLIENT_ID = ubinascii.hexlify(unique_id())          # ID of client to be used by
 # TOPIC_KEEPALIVE = b"keepAlive"                   # bedroomEnvironment, "livingroomEnvironment", "basementEnvironment"
 # KEEP_ALIVE = b'0'
 
-TOPIC_FAN_PLUG = b'OUTDOOR_PLUG'                            # Topic for on/off command
-FAN_COMMAND = b''
+MQTT_TOPIC = b'OUTDOOR_PLUG'                            # Topic for on/off command
+MQTT_COMMAND = b''
 
 
 def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time):
@@ -37,30 +37,30 @@ def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debo
 
 
 def toggle_relay_from_message(relay_pin: Pin):
-    global FAN_COMMAND
-    if FAN_COMMAND != b'':
+    global MQTT_COMMAND
+    if MQTT_COMMAND != b'':
         print('toggleing relay because of mqtt command')
-        if FAN_COMMAND == b'1' and relay_pin.value() != 1:
+        if MQTT_COMMAND == b'1' and relay_pin.value() != 1:
             relay_pin.on()
-        elif FAN_COMMAND == b'0' and relay_pin.value() != 0:
+        elif MQTT_COMMAND == b'0' and relay_pin.value() != 0:
             relay_pin.off()
         else:
             print("no toggle needed, was already set correctly")
-    FAN_COMMAND = b''
+    MQTT_COMMAND = b''
 
 
 def receive_message(topic, msg):
     # print("{} : {}".format(topic, msg))
-    if topic == TOPIC_FAN_PLUG:
+    if topic == MQTT_TOPIC:
         # print("Correct topic")
-        global FAN_COMMAND
-        if FAN_COMMAND == b'':
+        global MQTT_COMMAND
+        if MQTT_COMMAND == b'':
             # print("AC topic is null(good)")
             if msg == b'ON':
                 # print("msg was on good!\n\n\n")
-                FAN_COMMAND = b'1'
+                MQTT_COMMAND = b'1'
             elif msg == b'OFF':
-                FAN_COMMAND = b'0'
+                MQTT_COMMAND = b'0'
     # elif topic == TOPIC_KEEPALIVE:
     #     global KEEP_ALIVE
     #     KEEP_ALIVE = b'1'
@@ -117,7 +117,7 @@ def main():
                     c = MQTTClient(CLIENT_ID, SERVER)
                     c.connect()
                     c.set_callback(receive_message)
-                    c.subscribe(TOPIC_FAN_PLUG)
+                    c.subscribe(MQTT_TOPIC)
                     mqtt_connected = True
 
                     print("mqtt connection worked!")
