@@ -17,8 +17,9 @@ OTA = senko.Senko(None, None,
 SERVER = get_server_ip()                            # Server IP address
 CLIENT_ID = ubinascii.hexlify(unique_id())          # ID of client to be used by MQTT Server
 
-MQTT_TOPIC = b'OUTDOOR_PLUG'     # Topic specifc for this device
-MQTT_COMMAND = b''
+MQTT_TOPIC_PUMP = b'PUMP_PLUG'     # Topic specifc for this device
+MQTT_TOPIC_OUTDOOR = b'OUTDOOR_PLUG'     # Topic specifc for this device
+MQTT_COMMAND = ''
 
 
 def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debounce_time):
@@ -36,8 +37,9 @@ def process_pushbutton(button_pin, relay_pin, prev_button_state, prev_time, debo
 
 def toggle_relay_from_message(relay_1, relay_2):
     global MQTT_COMMAND
-    if MQTT_COMMAND != b'':
-        relay, command = str(MQTT_COMMAND).split(':')
+    if MQTT_COMMAND != '':
+        relay, command = MQTT_COMMAND.split(':')
+        print(relay, command)
         if relay == "relay_1":
             relay = relay_1
         elif relay == "relay_2":
@@ -45,14 +47,14 @@ def toggle_relay_from_message(relay_1, relay_2):
         else:
             print("Error reading relay: '{}'".format(MQTT_COMMAND))
 
-        if command == '1' and not relay.value():
+        if command == 'on' and not relay.value():
             relay.on()
-        elif command == '0' and relay.value():
+        elif command == 'off' and relay.value():
             relay.off()
         else:
             print("no toggle needed, was already set correctly")
 
-    MQTT_COMMAND = b''
+    MQTT_COMMAND = ''
 
 
 class RelayWithStatusLED(Pin):
@@ -82,11 +84,12 @@ class RelayWithStatusLED(Pin):
 
 def receive_message(topic, msg):
     # print("{} : {}".format(topic, msg))
-    if topic == MQTT_TOPIC:
+    global MQTT_COMMAND
+    if topic == MQTT_TOPIC_PUMP and MQTT_COMMAND == '':
         # print("Correct topic")
-        global MQTT_COMMAND
-        if MQTT_COMMAND == b'':
-            MQTT_COMMAND = msg
+        MQTT_COMMAND = f'relay_1:{msg.decode('utf-8')}'
+    elif topic == MQTT_TOPIC_OUTDOOR and MQTT_COMMAND == '':
+        MQTT_COMMAND = f'relay_2:{msg.decode('utf-8')}'
 
 
 def main():
@@ -150,7 +153,8 @@ def main():
                     c = MQTTClient(CLIENT_ID, SERVER)
                     c.connect()
                     c.set_callback(receive_message)
-                    c.subscribe(MQTT_TOPIC)
+                    c.subscribe(MQTT_TOPIC_PUMP)
+                    c.subscribe(MQTT_TOPIC_OUTDOOR)
                     mqtt_connected = True
 
                     print("mqtt connection worked!")
